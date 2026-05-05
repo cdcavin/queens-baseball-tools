@@ -1665,14 +1665,21 @@ function pitchOutcomeCategory(p) {
   const pc = (p.pitch_call || '').toLowerCase().replace(/\s+/g,'');
   const pr = (p.play_result || '').toLowerCase().replace(/\s+/g,'');
   const ev = parseFloat(p.exit_speed);
-  if (pc.includes('ballcalled') || pc === 'ball') return 'Ball';
+  const la = parseFloat(p.angle);
+  if (pc.includes('ballcalled') || pc === 'ball' || pc.includes('ballindirt') || pc.includes('intentional') || pc.includes('automaticball')) return 'Ball';
   if (pc.includes('strikecalled') || pc.includes('calledstrike')) return 'Called Strike';
   if (pc.includes('foul') || pc === 'fouledoff') return 'Foul';
   if (pc.includes('swinging') || pc.includes('strikeswinging') || pc.includes('missedbunt')) return 'Whiff';
   if (pc === 'inplay' || pc.includes('inplay')) {
-    if (pr === 'homerun' || pr === 'triple' || pr === 'double') return 'Barrel';
-    if (!isNaN(ev) && ev >= 95) return 'Barrel';
-    if (pr === 'single' || (!isNaN(ev) && ev >= 80)) return 'Hard';
+    // MLB barrel: EV >= 98, LA window widens 1° each side per mph above 98
+    if (!isNaN(ev) && ev >= 98 && !isNaN(la)) {
+      const minLA = Math.max(8,  26 - (ev - 98));
+      const maxLA = Math.min(50, 30 + (ev - 98));
+      if (la >= minLA && la <= maxLA) return 'Barrel';
+    }
+    if (isNaN(ev) && (pr === 'homerun' || pr === 'triple')) return 'Barrel';
+    if (!isNaN(ev) && ev >= 95) return 'Hard';
+    if (!isNaN(ev) && ev < 85)  return 'Weak';
     return 'Weak';
   }
   return null;
